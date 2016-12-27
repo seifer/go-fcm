@@ -35,6 +35,8 @@ type result struct {
 type HTTPClient struct {
 	srv string
 	key string
+
+	http *http.Client
 }
 
 type HTTPResponse struct {
@@ -51,8 +53,17 @@ type HTTPResponse struct {
 	Results      []result `json:"results"`
 }
 
+// TODO: add timeout
 func NewHTTPClient(srv, key string) *HTTPClient {
-	return &HTTPClient{srv, key}
+	return &HTTPClient{
+		srv:  srv,
+		key:  key,
+		http: &http.Client{},
+	}
+}
+
+func (c *HTTPClient) SetTimeout(t time.Duration) {
+	c.http.Timeout = t
 }
 
 func (c *HTTPClient) SendJSONRaw(message []byte) (*HTTPResponse, error) {
@@ -61,9 +72,7 @@ func (c *HTTPClient) SendJSONRaw(message []byte) (*HTTPResponse, error) {
 	request.Header.Set("Authorization", "key="+c.key)
 	request.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{}
-
-	response, err := client.Do(request)
+	response, err := c.http.Do(request)
 	if err != nil {
 		return nil, err
 	}
