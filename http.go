@@ -69,6 +69,8 @@ func (c *HTTPClient) SendJSONRaw(message []byte) (*Response, error) {
 		if err = json.Unmarshal(body, fcmResponse); err != nil {
 			return fcmResponse, wrapError(err)
 		}
+	default:
+		fcmResponse.Status = RESPONSE_STATUS_SERVER_ERROR
 	}
 
 	return fcmResponse, nil
