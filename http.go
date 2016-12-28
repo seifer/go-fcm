@@ -3,34 +3,11 @@ package fcm
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
 	"time"
 )
-
-const (
-	ERROR_RESPONSE_CODE_MISSING_REGISTRATION         = "MissingRegistration"
-	ERROR_RESPONSE_CODE_INVALID_REGISTRATION         = "InvalidRegistration"
-	ERROR_RESPONSE_CODE_NOT_REGISTERED               = "NotRegistered"
-	ERROR_RESPONSE_CODE_INVALID_PACKAGE_NAME         = "InvalidPackageName"
-	ERROR_RESPONSE_CODE_MISMATCH_SENDERID            = "MismatchSenderId"
-	ERROR_RESPONSE_CODE_MESSAGE_TOO_BIG              = "MessageTooBig"
-	ERROR_RESPONSE_CODE_INVALID_DATA_KEY             = "InvalidDataKey"
-	ERROR_RESPONSE_CODE_INVALID_TTL                  = "InvalidTtl"
-	ERROR_RESPONSE_CODE_TIMEOUT                      = "Unavailable"
-	ERROR_RESPONSE_CODE_INTERNAL_SERVER_ERROR        = "InternalServerError"
-	ERROR_RESPONSE_CODE_DEVICE_MESSAGE_RATE_EXCEEDED = "DeviceMessageRateExceeded"
-	ERROR_RESPONSE_CODE_TOPICS_MESSAGE_RATE_EXCEEDED = "TopicsMessageRateExceeded"
-)
-
-type result struct {
-	MessageId      string `json:"message_id"`
-	RegistrationId string `json:"registration_id"`
-	Error          string `json:"error"`
-}
 
 type HTTPClient struct {
 	srv string
@@ -39,21 +16,6 @@ type HTTPClient struct {
 	http *http.Client
 }
 
-type HTTPResponse struct {
-	// HTTP data
-	RetryAfter      time.Duration
-	HTTPStatusCode  int
-	HTTPRawResponse []byte
-
-	// Original body response
-	MulticastId  int      `json:"multicast_id"`
-	Success      int      `json:"success"`
-	Failure      int      `json:"failure"`
-	CanonicalIds int      `json:"canonical_ids"`
-	Results      []result `json:"results"`
-}
-
-// TODO: add timeout
 func NewHTTPClient(srv, key string) *HTTPClient {
 	return &HTTPClient{
 		srv:  srv,
@@ -66,7 +28,7 @@ func (c *HTTPClient) SetTimeout(t time.Duration) {
 	c.http.Timeout = t
 }
 
-func (c *HTTPClient) SendJSONRaw(message []byte) (*HTTPResponse, error) {
+func (c *HTTPClient) SendJSONRaw(message []byte) (*Response, error) {
 	request, err := http.NewRequest("POST", c.srv, bytes.NewBuffer(message))
 
 	request.Header.Set("Authorization", "key="+c.key)
@@ -74,31 +36,18 @@ func (c *HTTPClient) SendJSONRaw(message []byte) (*HTTPResponse, error) {
 
 	response, err := c.http.Do(request)
 	if err != nil {
-		return nil, err
+		return nil, wrapError(err)
 	}
 
 	defer response.Body.Close()
 
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return nil, err
+		return nil, wrapError(err)
 	}
 
-	if response.StatusCode == http.StatusBadRequest {
-		return nil, errors.New(
-			fmt.Sprintf("HTTP request failed. Status %d. %s", response.StatusCode, body),
-		)
-	}
-
-	if response.StatusCode == http.StatusUnauthorized {
-		return nil, errors.New(
-			fmt.Sprintf("HTTP request failed. Status %d. Authentication Error", response.StatusCode),
-		)
-	}
-
-	fcmResponse := &HTTPResponse{
-		HTTPStatusCode:  response.StatusCode,
-		HTTPRawResponse: body,
+	fcmResponse := &Response{
+		RawResponse: body,
 	}
 
 	if head := response.Header.Get("Retry-After"); len(head) > 0 {
@@ -109,9 +58,16 @@ func (c *HTTPClient) SendJSONRaw(message []byte) (*HTTPResponse, error) {
 		}
 	}
 
-	if response.StatusCode == http.StatusOK {
+	switch response.StatusCode {
+	case http.StatusUnauthorized:
+		fcmResponse.Status = RESPONSE_STATUS_UNAUTHORIZED
+	case http.StatusBadRequest:
+		fcmResponse.Status = RESPONSE_STATUS_BAD_REQUEST
+	case http.StatusOK:
+		fcmResponse.Status = RESPONSE_STATUS_OK
+
 		if err = json.Unmarshal(body, fcmResponse); err != nil {
-			return fcmResponse, err
+			return fcmResponse, wrapError(err)
 		}
 	}
 

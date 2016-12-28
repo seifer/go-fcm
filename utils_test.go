@@ -12,11 +12,20 @@ func Assert(t *testing.T, obtained, expected interface{}, comment ...string) {
 }
 
 func AssertIsNil(t *testing.T, obtained interface{}, comment ...string) {
-	assert(t, obtained == nil, true, comment...)
+	if obtained == nil {
+		return
+	}
+
+	assert(t, reflect.ValueOf(obtained).IsNil(), true, comment...)
 }
 
 func AssertNotNil(t *testing.T, obtained interface{}, comment ...string) {
-	assert(t, obtained == nil, false, comment...)
+	if obtained == nil {
+		assert(t, true, false, comment...)
+		return
+	}
+
+	assert(t, reflect.ValueOf(obtained).IsNil(), false, comment...)
 }
 
 // Utils
@@ -36,6 +45,8 @@ func assert(t *testing.T, obtained, expected interface{}, comment ...string) {
 	} else {
 		t.Errorf("\n%s\nExpected=%v\nObtained=%v\n%s\n", title, expected, obtained, comment[0])
 	}
+
+	t.FailNow()
 }
 
 func getFuncName(pc uintptr) string {

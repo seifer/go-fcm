@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"testing"
 
@@ -44,20 +43,32 @@ func init() {
 	}
 }
 
+func TestIncorrectDial(t *testing.T) {
+	client := fcm.NewHTTPClient("stub", "blabla")
+
+	response, err := client.SendJSONRaw([]byte("null"))
+
+	AssertNotNil(t, err, err.Error())
+	AssertIsNil(t, response)
+}
+
 func TestIncorrectAuth(t *testing.T) {
 	client := fcm.NewHTTPClient(cfg.Srv, "blabla")
 
-	_, err := client.SendJSONRaw([]byte("null"))
+	response, err := client.SendJSONRaw([]byte("null"))
 
-	AssertNotNil(t, err, err.Error())
+	AssertIsNil(t, err)
+	AssertNotNil(t, response)
+	Assert(t, response.Status, fcm.RESPONSE_STATUS_UNAUTHORIZED)
 }
 
 func TestIncorrectJSON(t *testing.T) {
 	client := fcm.NewHTTPClient(cfg.Srv, cfg.Key)
 
-	_, err := client.SendJSONRaw([]byte("null"))
+	response, err := client.SendJSONRaw([]byte("null"))
 
-	AssertNotNil(t, err, err.Error())
+	AssertIsNil(t, err)
+	Assert(t, response.Status, fcm.RESPONSE_STATUS_BAD_REQUEST)
 }
 
 func TestCorrectRequestNotRegistered(t *testing.T) {
@@ -66,11 +77,11 @@ func TestCorrectRequestNotRegistered(t *testing.T) {
 	response, err := client.SendJSONRaw(getTestMessage(stubToken))
 
 	AssertIsNil(t, err)
-	Assert(t, response.HTTPStatusCode, http.StatusOK, fmt.Sprintf("Status %s", response.HTTPRawResponse))
-	Assert(t, response.Success, 1, fmt.Sprintf("Success %s", response.HTTPRawResponse))
-	Assert(t, response.Failure, 0, fmt.Sprintf("Failure %s", response.HTTPRawResponse))
-	Assert(t, response.CanonicalIds, 0, fmt.Sprintf("CanonicalIds %s", response.HTTPRawResponse))
-	Assert(t, len(response.Results), 1, fmt.Sprintf("Results %s", response.HTTPRawResponse))
+	Assert(t, response.Status, fcm.RESPONSE_STATUS_OK, fmt.Sprintf("Status %s", response.RawResponse))
+	Assert(t, response.Success, 1, fmt.Sprintf("Success %s", response.RawResponse))
+	Assert(t, response.Failure, 0, fmt.Sprintf("Failure %s", response.RawResponse))
+	Assert(t, response.CanonicalIds, 0, fmt.Sprintf("CanonicalIds %s", response.RawResponse))
+	Assert(t, len(response.Results), 1, fmt.Sprintf("Results %s", response.RawResponse))
 }
 
 func TestCorrectRequestUserRegistered(t *testing.T) {
@@ -79,9 +90,9 @@ func TestCorrectRequestUserRegistered(t *testing.T) {
 	response, err := client.SendJSONRaw(getTestMessage(""))
 
 	AssertIsNil(t, err)
-	Assert(t, response.HTTPStatusCode, http.StatusOK, fmt.Sprintf("Status %s", response.HTTPRawResponse))
-	Assert(t, response.Success, 1, fmt.Sprintf("Success %s", response.HTTPRawResponse))
-	Assert(t, response.Failure, 0, fmt.Sprintf("Failure %s", response.HTTPRawResponse))
-	Assert(t, response.CanonicalIds, 0, fmt.Sprintf("CanonicalIds %s", response.HTTPRawResponse))
-	Assert(t, len(response.Results), 1, fmt.Sprintf("Results %s", response.HTTPRawResponse))
+	Assert(t, response.Status, fcm.RESPONSE_STATUS_OK, fmt.Sprintf("Status %s", response.RawResponse))
+	Assert(t, response.Success, 1, fmt.Sprintf("Success %s", response.RawResponse))
+	Assert(t, response.Failure, 0, fmt.Sprintf("Failure %s", response.RawResponse))
+	Assert(t, response.CanonicalIds, 0, fmt.Sprintf("CanonicalIds %s", response.RawResponse))
+	Assert(t, len(response.Results), 1, fmt.Sprintf("Results %s", response.RawResponse))
 }
