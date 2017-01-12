@@ -27,7 +27,7 @@ const (
 	RESPONSE_MESSAGE_CODE_TOPICS_MESSAGE_RATE_EXCEEDED = "TopicsMessageRateExceeded"
 )
 
-type result struct {
+type Result struct {
 	MessageId      string `json:"message_id"`
 	RegistrationId string `json:"registration_id"`
 	Error          string `json:"error"`
@@ -46,7 +46,7 @@ type Response struct {
 	Success      int      `json:"success"`
 	Failure      int      `json:"failure"`
 	CanonicalIds int      `json:"canonical_ids"`
-	Results      []result `json:"results"`
+	Results      []Result `json:"results"`
 }
 
 func (r *Response) String() string {
