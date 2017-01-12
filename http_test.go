@@ -17,7 +17,6 @@ type config struct {
 }
 
 var cfg = &config{}
-var stubToken = "fNom830_YZA:APA91bGWbm3rVyCv1DuD3FyqoExoeHPs_nAGm2WoJjcc-JNeUHhBaQqGbjbrku7DPBW9LTajXwCLD6rQwD2fa11dxUvwdbZzd41fwVMtZj9ZlhE3a8yWkDpWP6z3uEVh-0AUd2rkjzuE"
 
 func init() {
 	if _, err := os.Stat("test.json"); os.IsNotExist(err) {
@@ -74,7 +73,7 @@ func TestIncorrectJSON(t *testing.T) {
 func TestCorrectRequestNotRegistered(t *testing.T) {
 	client := fcm.NewHTTPClient(cfg.Srv, cfg.Key)
 
-	response, err := client.SendJSONRaw(getTestMessage(stubToken))
+	response, err := client.SendJSONRaw(getTestMessage(cfg.To))
 
 	AssertIsNil(t, err)
 	Assert(t, response.Status, fcm.RESPONSE_STATUS_OK, fmt.Sprintf("Status %s", response.RawResponse))

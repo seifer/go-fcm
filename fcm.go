@@ -1,6 +1,9 @@
 package fcm
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 const (
 	// status of response
@@ -44,4 +47,8 @@ type Response struct {
 	Failure      int      `json:"failure"`
 	CanonicalIds int      `json:"canonical_ids"`
 	Results      []result `json:"results"`
+}
+
+func (r *Response) String() string {
+	return fmt.Sprintf("{Status: %d RetryAfter: %s Body: %s", r.Status, r.RetryAfter, string(r.RawResponse))
 }
