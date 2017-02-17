@@ -15,8 +15,20 @@ func wrapError(err error) error {
 	var funcName string
 
 	if pc, _, _, ok := runtime.Caller(1); ok {
-		funcName = getFuncName(pc)
+		funcName = getFuncName2(pc)
 	}
 
 	return fmt.Errorf("FCM %s error: %s", funcName, err)
+}
+
+func getFuncName2(pc uintptr) string {
+	name := runtime.FuncForPC(pc).Name()
+
+	for i := len(name) - 1; i > 0; i-- {
+		if name[i] == '.' {
+			return string(name[i+1:])
+		}
+	}
+
+	return name
 }
