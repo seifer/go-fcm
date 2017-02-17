@@ -9,23 +9,29 @@ import (
 	"time"
 )
 
+type HTTPDoer interface {
+	Do(*http.Request) (*http.Response, error)
+}
+
 type HTTPClient struct {
 	srv string
 	key string
 
-	http *http.Client
+	http HTTPDoer
 }
 
-func NewHTTPClient(srv, key string) *HTTPClient {
-	return &HTTPClient{
+func NewHTTPClient(srv, key string, opts ...option) *HTTPClient {
+	client := &HTTPClient{
 		srv:  srv,
 		key:  key,
-		http: &http.Client{},
+		http: http.DefaultClient,
 	}
-}
 
-func (c *HTTPClient) SetTimeout(t time.Duration) {
-	c.http.Timeout = t
+	for _, opt := range opts {
+		opt.apply(client)
+	}
+
+	return client
 }
 
 func (c *HTTPClient) SendJSONRaw(message []byte) (*Response, error) {

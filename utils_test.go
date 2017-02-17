@@ -1,4 +1,4 @@
-package fcm_test
+package fcm
 
 import (
 	"fmt"

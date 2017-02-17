@@ -1,4 +1,4 @@
-package fcm_test
+package fcm
 
 import (
 	"encoding/json"
@@ -6,8 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
-
-	fcm "github.com/seifer/go-fcm"
 )
 
 type config struct {
@@ -43,7 +41,7 @@ func init() {
 }
 
 func TestIncorrectDial(t *testing.T) {
-	client := fcm.NewHTTPClient("stub", "blabla")
+	client := NewHTTPClient("stub", "blabla")
 
 	response, err := client.SendJSONRaw([]byte("null"))
 
@@ -52,31 +50,31 @@ func TestIncorrectDial(t *testing.T) {
 }
 
 func TestIncorrectAuth(t *testing.T) {
-	client := fcm.NewHTTPClient(cfg.Srv, "blabla")
+	client := NewHTTPClient(cfg.Srv, "blabla")
 
 	response, err := client.SendJSONRaw([]byte("null"))
 
 	AssertIsNil(t, err)
 	AssertNotNil(t, response)
-	Assert(t, response.Status, fcm.RESPONSE_STATUS_UNAUTHORIZED)
+	Assert(t, response.Status, RESPONSE_STATUS_UNAUTHORIZED)
 }
 
 func TestIncorrectJSON(t *testing.T) {
-	client := fcm.NewHTTPClient(cfg.Srv, cfg.Key)
+	client := NewHTTPClient(cfg.Srv, cfg.Key)
 
 	response, err := client.SendJSONRaw([]byte("null"))
 
 	AssertIsNil(t, err)
-	Assert(t, response.Status, fcm.RESPONSE_STATUS_BAD_REQUEST)
+	Assert(t, response.Status, RESPONSE_STATUS_BAD_REQUEST)
 }
 
 func TestCorrectRequestNotRegistered(t *testing.T) {
-	client := fcm.NewHTTPClient(cfg.Srv, cfg.Key)
+	client := NewHTTPClient(cfg.Srv, cfg.Key)
 
 	response, err := client.SendJSONRaw(getTestMessage(cfg.To))
 
 	AssertIsNil(t, err)
-	Assert(t, response.Status, fcm.RESPONSE_STATUS_OK, fmt.Sprintf("Status %s", response.RawResponse))
+	Assert(t, response.Status, RESPONSE_STATUS_OK, fmt.Sprintf("Status %s", response.RawResponse))
 	Assert(t, response.Success, 1, fmt.Sprintf("Success %s", response.RawResponse))
 	Assert(t, response.Failure, 0, fmt.Sprintf("Failure %s", response.RawResponse))
 	Assert(t, response.CanonicalIds, 0, fmt.Sprintf("CanonicalIds %s", response.RawResponse))
@@ -84,14 +82,20 @@ func TestCorrectRequestNotRegistered(t *testing.T) {
 }
 
 func TestCorrectRequestUserRegistered(t *testing.T) {
-	client := fcm.NewHTTPClient(cfg.Srv, cfg.Key)
+	client := NewHTTPClient(cfg.Srv, cfg.Key)
 
 	response, err := client.SendJSONRaw(getTestMessage(""))
 
 	AssertIsNil(t, err)
-	Assert(t, response.Status, fcm.RESPONSE_STATUS_OK, fmt.Sprintf("Status %s", response.RawResponse))
+	Assert(t, response.Status, RESPONSE_STATUS_OK, fmt.Sprintf("Status %s", response.RawResponse))
 	Assert(t, response.Success, 1, fmt.Sprintf("Success %s", response.RawResponse))
 	Assert(t, response.Failure, 0, fmt.Sprintf("Failure %s", response.RawResponse))
 	Assert(t, response.CanonicalIds, 0, fmt.Sprintf("CanonicalIds %s", response.RawResponse))
 	Assert(t, len(response.Results), 1, fmt.Sprintf("Results %s", response.RawResponse))
+}
+
+func TestOptionHTTPDoer(t *testing.T) {
+	client := NewHTTPClient(cfg.Srv, cfg.Key, OptionHTTPDoer(nil))
+
+	AssertIsNil(t, client.http)
 }
